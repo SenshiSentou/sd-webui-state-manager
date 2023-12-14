@@ -1,5 +1,5 @@
-![State Manager docked preview](https://github.com/SenshiSentou/sd-webui-state-manager/blob/main/preview-docked.png?raw=true)
-![State Manager modal preview](https://github.com/SenshiSentou/sd-webui-state-manager/blob/main/preview-modal.png?raw=true)
+<img src="https://github.com/SenshiSentou/sd-webui-state-manager/blob/main/preview-docked.png" width="400" />
+<img src="https://github.com/SenshiSentou/sd-webui-state-manager/blob/main/preview-modal.png" width="400" />
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/J3J81VHA2)
 
