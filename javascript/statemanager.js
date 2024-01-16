@@ -1002,7 +1002,7 @@
 
     sm.getLocalStorage = function(callback){
         sm.ldb.get('sd-webui-state-manager-data', async storedData => {
-            if(storedData == null){
+            if(storedData == null || storedData == '[]'){
                 callback({});
                 return;
             }
@@ -1447,9 +1447,21 @@
             const compressedStream = stream.pipeThrough(new CompressionStream("gzip"));
             const chunks = [];
 
-            for await (const chunk of compressedStream) {
-                chunks.push(chunk);
-            }
+            // Not supported in anything other than FF yet
+            // for await (const chunk of compressedStream) {
+            //     chunks.push(chunk);
+            // }
+
+            const reader = compressedStream.getReader();
+
+            await reader.read().then(function processChunk({done, value}) {
+                if(done) {
+                  return;
+                }
+                
+                chunks.push(value);
+                return reader.read().then(processChunk);
+            });
             
             return await sm.utils.concatUint8Arrays(chunks);
         },
@@ -1458,10 +1470,22 @@
             const stream = new Blob([compressedBytes]).stream();
             const decompressedStream = stream.pipeThrough(new DecompressionStream("gzip"));
             const chunks = [];
+            
+            // Not supported in anything other than FF yet
+            // for await (const chunk of decompressedStream) {
+                //     chunks.push(chunk);
+                // }
+                
+            const reader = decompressedStream.getReader();
 
-            for await (const chunk of decompressedStream) {
-                chunks.push(chunk);
-            }
+            await reader.read().then(function processChunk({done, value}) {
+                if(done) {
+                  return;
+                }
+                
+                chunks.push(value);
+                return reader.read().then(processChunk);
+            });
             
             const stringBytes = await sm.utils.concatUint8Arrays(chunks);
         
