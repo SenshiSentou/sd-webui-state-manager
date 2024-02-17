@@ -1330,7 +1330,9 @@
         const galleryPreviews = sm.getGalleryPreviews();
     
         const image = (galleryPreviews.length > 1 && galleryPreviews[0].src.includes("grids/")) ? galleryPreviews[1] : galleryPreviews[0];
-    
+        if (!image) {
+            return undefined;
+        }
         // const imageSize = {x: 100, y: 100};
     
         const scale = 100 / Math.max(image.naturalWidth, image.naturalHeight);
