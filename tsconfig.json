@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "lib": [
+      "ES2021",
+      "dom",
+      "dom.iterable"
+    ],
+    "outDir": "javascript",
+
+    // Lint
+    "noImplicitReturns": true,
+    "noUnusedLocals": true, // Report errors on unused local variables.
+    "noUnusedParameters": true // Report errors on unused parameters in functions
+  }
+}

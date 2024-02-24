@@ -36,3 +36,20 @@ Unfortunately there is no clean way to access gradio data on the client side, so
 # Installation
 
 Open your A1111 Web UI and go to `Extensions > Install from URL`. Paste in the link to this repo (`https://github.com/SenshiSentou/sd-webui-state-manager.git`), click `Install` and restart the web ui. Badabing badaboom, baby!
+
+# Changelog
+
+<details>
+  <summary>Click to expand</summary>
+  
+  ## 2.0
+  - Completely overhauled the way settings are saved and loaded (much more robust now) **V2.0 is NOT backwards compatible with V1**
+  - Added settings panel (`Settings > State Manager`) that contains:
+    - Option to save entries in either a browser's Indexed DB, or a shared .txt file 
+    - Tools to migrate data between the different save locations
+  - Added API. Mostly meant for internal use, but also contains a `/version` endpoint and some other programmatic access. See `[a1111 ip]:[port]/docs`
+  - Made data store more efficiently
+  - Improved (error) logging
+  - Fixed "delete entry" button not working
+  - Ported the code to typescript
+</details>
