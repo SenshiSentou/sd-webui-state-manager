@@ -60,7 +60,7 @@ def state_manager_api(blocks: gr.Blocks, app: FastAPI):
     async def get_ui_defaults():
         filepath = path.join(scripts.basedir(), "ui-config.json")
                              
-        with open(filepath, 'r') as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             contents = json.load(f)
             
             return {
@@ -127,8 +127,8 @@ def on_ui_settings():
     profile – has its own, unique history. Choosing 'File' will instead save the history to a file in this extension's root
     folder, and can be shared across all browsers and profiles.
     """),
-        "statemanager_save_location": shared.OptionInfo("Browser's Indexed DB", "Save Location", gr.Radio, {"choices": ["File", "Browser's Indexed DB"]}),
-        "statemanager_save_file_location": shared.OptionInfo("history.txt", "File name", onchange=update_storage_file_path).info("When saving to file, the name of the file to use. Change this is you want to maintain multiple, independent histories. AFTER CHANGING THIS, REMEMBER TO APPLY SETTINGS BEFORE USING ANY OF THE TOOLS BELOW!"),
+        "statemanager_save_location": shared.OptionInfo("Browser's Indexed DB", "Save Location", gr.Radio, {"choices": ["File", "Browser's Indexed DB"]}).needs_reload_ui(),
+        "statemanager_save_file_location": shared.OptionInfo("history.txt", "File name", onchange=update_storage_file_path).info("When saving to file, the name of the file to use. Change this is you want to maintain multiple, independent histories. AFTER CHANGING THIS, REMEMBER TO APPLY SETTINGS BEFORE USING ANY OF THE TOOLS BELOW!").needs_reload_ui(),
     }
 
     for name, opt in options.items():

@@ -705,6 +705,7 @@
                 content.style.height = '100%';
                 accordion.classList.add('open');
             }
+            //
         });
         return accordion;
     };
@@ -1296,11 +1297,13 @@
                 return uiCurrentTab.innerText;
             }
             // In case of i18n e.g., we fall back to this
-            switch (Object.values(uiCurrentTab.parentNode.children).indexOf(uiCurrentTab)) {
-                case 0: return 'txt2img';
-                case 1: return 'img2img';
-                default: return null;
+            if (app.getElementById("tab_txt2img").style.display == 'block') {
+                return 'txt2img';
             }
+            else if (app.getElementById("tab_img2img").style.display == 'block') {
+                return 'img2img';
+            }
+            return null;
         },
         areLooselyEqualValue: (...values) => {
             const qualifiesForLooseComparison = looselyEqualUIValues.has(values[0]);

@@ -151,6 +151,7 @@
     /* transition: visibility 0 var(--sm-side-panel-slide-speed); */
     visibility: visible;
     /* width: var(--sm-side-panel-width); */
+    background: var(--body-background-fill);
 }
 
 .sd-webui-sm-panel-container.sd-webui-sm-modal-panel.open .sd-webui-sm-side-panel {
@@ -218,7 +219,8 @@
     background-color: var(--primary-400);
     /* background-color: var(--secondary-600); */
     /* background-color: var(--neutral-600); */
-    color: var(--checkbox-background-color) !important;
+    /* color: var(--checkbox-background-color) !important; */
+    color: var(--button-primary-text-color) !important;
     width: unset !important;
     /* height: unset !important; */
     background-image: none !important;
@@ -464,6 +466,11 @@
     background: var(--primary-400);
     color: var(--primary-50);
     border-radius: 999px;
+}
+
+.sd-webui-sm-side-panel input[type='text'], .sd-webui-sm-inspector-param .prompt, .sd-webui-sm-entry-footer {
+    background: var(--input-background-fill) !important;
+    border: var(--input-border-width) solid var(--input-border-color) !important;
 }
 
 .sd-webui-sm-side-panel input[type='text']::placeholder {
