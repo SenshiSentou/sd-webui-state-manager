@@ -219,8 +219,9 @@
     background-color: var(--primary-400);
     /* background-color: var(--secondary-600); */
     /* background-color: var(--neutral-600); */
+    background-color: white;
     /* color: var(--checkbox-background-color) !important; */
-    color: var(--button-primary-text-color) !important;
+    /* color: var(--button-primary-text-color) !important; */
     width: unset !important;
     /* height: unset !important; */
     background-image: none !important;
