@@ -488,7 +488,7 @@
         function createQuickSetting(label, settingPath) {
             const quickSettingParameter = sm.createInspectorParameter(label, entry.data.quickSettings[settingPath], () => sm.applyQuickParameters(entry.data.quickSettings, settingPath));
             if (sm.componentMap.hasOwnProperty(settingPath)) {
-                quickSettingParameter.dataset['valueDiff'] = (sm.componentMap[settingPath].components[0].instance.$$.ctx[0] == entry.data.quickSettings[settingPath] ? 'same' : 'changed');
+                quickSettingParameter.dataset['valueDiff'] = (sm.componentMap[settingPath].entries[0].component.instance.$$.ctx[0] == entry.data.quickSettings[settingPath] ? 'same' : 'changed');
             }
             else {
                 quickSettingParameter.dataset['valueDiff'] = 'missing';
@@ -610,7 +610,7 @@
                 const settingPath = sectionName.endsWith('.py') ? getScriptSettingName(sectionName.substring(0, sectionName.length - 3), settingName) : `${sectionName}/${settingName}`;
                 if (curatedSettingNames.has(settingPath) ||
                     (sm.componentMap.hasOwnProperty(settingPath) && sm.memoryStorage.currentDefault.contents.hasOwnProperty(settingPath) &&
-                        sm.componentMap[settingPath].components.every(c => sm.utils.areLooselyEqualValue(value, c.props.value, sm.memoryStorage.currentDefault.contents[settingPath])))) {
+                        sm.componentMap[settingPath].entries.every(e => sm.utils.areLooselyEqualValue(value, e.component.props.value, sm.memoryStorage.currentDefault.contents[settingPath])))) {
                     delete mergedComponentSettings[sectionName][settingName];
                 }
             }
@@ -642,10 +642,10 @@
                     // if(!sm.utils.areLooselyEqualValue(value, sm.componentMap[settingPath].component.props.value, sm.memoryStorage.currentDefault.contents[settingPath])){
                     //     mergedComponentSettings[sectionName][settingName] = value;
                     // }
-                    const components = sm.componentMap[settingPathInfo.basePath].components;
-                    for (let i = 0; i < components.length; i++) {
-                        const finalSettingName = components.length == 1 ? settingName : `${settingName} ${i}`;
-                        if (!sm.utils.areLooselyEqualValue(value, components[i].props.value, sm.memoryStorage.currentDefault.contents[settingPathInfo.basePath])) {
+                    const mappedComponents = sm.componentMap[settingPathInfo.basePath].entries;
+                    for (let i = 0; i < mappedComponents.length; i++) {
+                        const finalSettingName = mappedComponents.length == 1 ? settingName : `${settingName} ${i}`;
+                        if (!sm.utils.areLooselyEqualValue(value, mappedComponents[i].component.props.value, sm.memoryStorage.currentDefault.contents[settingPathInfo.basePath])) {
                             mergedComponentSettings[sectionName][finalSettingName] = value;
                         }
                     }
@@ -672,11 +672,11 @@
         const settingPathInfo = sm.utils.getSettingPathInfo(settingPath);
         if (sm.componentMap.hasOwnProperty(settingPathInfo.basePath)) {
             const componentData = sm.componentMap[settingPathInfo.basePath];
-            if (componentData.components.length == 1) {
-                element.dataset['valueDiff'] = (componentData.components[0].props.value == value ? 'same' : 'changed');
+            if (componentData.entries.length == 1) {
+                element.dataset['valueDiff'] = (componentData.entries[0].component.props.value == value ? 'same' : 'changed');
             }
             else {
-                element.dataset['valueDiff'] = (componentData.components[settingPathInfo.index].props.value == value ? 'same' : 'changed');
+                element.dataset['valueDiff'] = (componentData.entries[settingPathInfo.index].component.props.value == value ? 'same' : 'changed');
             }
         }
         else {
@@ -705,28 +705,10 @@
                 console.warn(`[State Manager] Could not apply component path ${settingPathInfo.basePath}`);
                 continue;
             }
-            componentData.components[settingPathInfo.index].props.value = settings[componentPath];
-            componentData.components[settingPathInfo.index].instance.$set({ value: componentData.components[settingPathInfo.index].props.value });
+            componentData.entries[settingPathInfo.index].component.props.value = settings[componentPath];
+            componentData.entries[settingPathInfo.index].component.instance.$set({ value: componentData.entries[settingPathInfo.index].component.props.value });
         }
     };
-    // sm.applyComponentSettings = function(settings: {[path: string]: any}): void{
-    //     for(let componentPath of Object.keys(settings)){
-    //         if(!sm.componentMap.hasOwnProperty(componentPath)){
-    //             componentPath = sm.utils.getBaseSettingPath(componentPath);
-    //         }
-    //         const componentData = sm.componentMap[componentPath];
-    //         if(!componentData){
-    //             console.warn(`[State Manager] Could not apply component path ${componentPath}`);
-    //             continue;
-    //         }
-    //         // for(const component of componentData.components){
-    //         for(let i = 0; i < componentData.components.length; i++){
-    //             const finalComponentPath = componentData.components.length == 1 ? componentPath : `${componentPath}/${i}`;
-    //             componentData.components[i].props.value = settings[finalComponentPath];
-    //             componentData.components[i].instance.$set({value: componentData.components[i].props.value});
-    //         }
-    //     }
-    // }
     sm.createInspectorSettingsAccordion = function (label, data) {
         const accordion = sm.createElementWithClassList('div', 'sd-webui-sm-inspector-category', 'block', 'gradio-accordion');
         accordion.appendChild(sm.createInspectorLabel(label));
@@ -906,21 +888,21 @@
                 if (pathParts[pathParts.length - 1] != 'value') {
                     continue; // Skip other settings like min/max if they sneak in here
                 }
-                // let data: MappedComponent = {
-                //     component: component,
-                //     element: app.getElementById(component.props.elem_id || `component-${component.id}`)
-                // }
                 let data = {
-                    components: [component],
-                    elements: [app.getElementById(component.props.elem_id || `component-${component.id}`)]
+                    entries: [{
+                            component: component,
+                            element: app.getElementById(component.props.elem_id || `component-${component.id}`)
+                        }]
                 };
                 // I really, REALLY dislike adding exception cases for specific extensions, but ControlNet's such a pivotal one...
                 // The problem is each unit refers to the same default component path, and we only get returned unit 0 in the list of mapped components from Py
                 if (component.props.elem_id?.indexOf('controlnet_ControlNet-0_') > -1) {
                     for (let i = 1; i < 3; i++) {
                         const unitElemId = component.props.elem_id.replace('ControlNet-0_', `ControlNet-${i}_`);
-                        data.components.push(gradio_config.components.find(c => c.props.elem_id == unitElemId));
-                        data.elements.push(app.getElementById(unitElemId));
+                        data.entries.push({
+                            component: gradio_config.components.find(c => c.props.elem_id == unitElemId),
+                            element: app.getElementById(unitElemId)
+                        });
                     }
                 }
                 sm.componentMap[pathParts.slice(0, pathParts.length - 1).join('/')] = data;
@@ -941,8 +923,10 @@
                 let data = sm.componentMap[`${accordion.id.split('_')[0]}/${component.label}`];
                 if (!data) {
                     data = {
-                        components: [component],
-                        elements: [checkbox]
+                        entries: [{
+                                component: component,
+                                element: checkbox
+                            }]
                     };
                     switch (accordion.id) {
                         case 'txt2img_enable':
@@ -956,14 +940,16 @@
                 // We could use data.element.addEventListener("change", ...) here, but I don't like the idea of adding a "global" listener
                 // like that, that extends outside the scope of this extension. Thus, a hacky data.onchange() that we call manually. Neat.
                 data.onChange = () => {
-                    visibleCheckbox.checked = data.elements[0].checked;
+                    visibleCheckbox.checked = data.entries[0].element.checked;
                 };
             }
             const settingComponents = gradio_config.components.filter(c => c.props.elem_id?.startsWith('setting_'));
             for (const component of settingComponents) { // {path: id}
                 let data = {
-                    components: [component],
-                    elements: [app.getElementById(component.props.elem_id)]
+                    entries: [{
+                            component: component,
+                            element: app.getElementById(component.props.elem_id)
+                        }]
                 };
                 sm.componentMap[component.props.elem_id.substring(8)] = data; // strips "setting_" so we get sm.componentMap['sd_model_checkpoint'] e.g.
             }
@@ -1232,10 +1218,10 @@
                     continue;
                 }
                 const value = savedComponentDefaults[settingPath];
-                const components = sm.componentMap[settingPath].components;
-                for (let i = 0; i < components.length; i++) {
-                    if (!sm.utils.areLooselyEqualValue(value, components[i].props.value)) {
-                        mergedComponentSettings[components.length == 1 ? settingPath : `${settingPath}/${i}`] = value;
+                const mappedComponents = sm.componentMap[settingPath].entries;
+                for (let i = 0; i < mappedComponents.length; i++) {
+                    if (!sm.utils.areLooselyEqualValue(value, mappedComponents[i].component.props.value)) {
+                        mergedComponentSettings[mappedComponents.length == 1 ? settingPath : `${settingPath}/${i}`] = value;
                     }
                 }
             }
@@ -1266,9 +1252,9 @@
             //     settings[componentPath] = currentValue;
             // }
             if (reType.test(componentPath)) {
-                for (let i = 0; i < componentData.components.length; i++) {
-                    const finalComponentPath = componentData.components.length == 1 ? componentPath : `${componentPath}/${i}`;
-                    const currentValue = componentData.components[i].props.value;
+                for (let i = 0; i < componentData.entries.length; i++) {
+                    const finalComponentPath = componentData.entries.length == 1 ? componentPath : `${componentPath}/${i}`;
+                    const currentValue = componentData.entries[i].component.props.value;
                     if (!changedOnly || (sm.memoryStorage.currentDefault.contents[finalComponentPath] != currentValue)) {
                         settings[finalComponentPath] = currentValue;
                     }

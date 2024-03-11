@@ -11,7 +11,7 @@ interface Window {
 }
 
 interface StateManager {
-    componentMap: {[key: string]: MappedComponent},
+    componentMap: {[key: string]: MappedComponentData},
     memoryStorage: MemoryStorage,
     selection: EntrySelection,
     [key: string]: any
@@ -45,10 +45,14 @@ interface StoredData { // As stored on disk, either in file or IDB
     entries: {[createdAt: string]: State}
 }
 
-interface MappedComponent {
-    components: any[],
-    elements: HTMLElement[],
+interface MappedComponentData {
+    entries: MappedComponent[],
     onChange?: () => void
+}
+
+interface MappedComponent {
+    component: any,
+    element: HTMLElement
 }
 
 interface SettingPathInfo {
@@ -706,7 +710,7 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
             const quickSettingParameter = sm.createInspectorParameter(label, entry.data.quickSettings[settingPath], () => sm.applyQuickParameters(entry.data.quickSettings, settingPath));
             
             if(sm.componentMap.hasOwnProperty(settingPath)){
-                quickSettingParameter.dataset['valueDiff'] = (sm.componentMap[settingPath].components[0].instance.$$.ctx[0] == entry.data.quickSettings[settingPath] ? 'same' : 'changed');
+                quickSettingParameter.dataset['valueDiff'] = (sm.componentMap[settingPath].entries[0].component.instance.$$.ctx[0] == entry.data.quickSettings[settingPath] ? 'same' : 'changed');
             }
             else{
                 quickSettingParameter.dataset['valueDiff'] = 'missing';
@@ -868,7 +872,7 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                
                if(curatedSettingNames.has(settingPath) ||
                (sm.componentMap.hasOwnProperty(settingPath) && sm.memoryStorage.currentDefault.contents.hasOwnProperty(settingPath) &&
-               sm.componentMap[settingPath].components.every(c => sm.utils.areLooselyEqualValue(value, c.props.value, sm.memoryStorage.currentDefault.contents[settingPath])))){
+               sm.componentMap[settingPath].entries.every(e => sm.utils.areLooselyEqualValue(value, e.component.props.value, sm.memoryStorage.currentDefault.contents[settingPath])))){
                    delete mergedComponentSettings[sectionName][settingName];
                 }
             }
@@ -911,12 +915,12 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                     //     mergedComponentSettings[sectionName][settingName] = value;
                     // }
 
-                    const components = sm.componentMap[settingPathInfo.basePath].components;
+                    const mappedComponents = sm.componentMap[settingPathInfo.basePath].entries;
 
-                    for(let i = 0; i < components.length; i++){
-                        const finalSettingName = components.length == 1 ? settingName : `${settingName} ${i}`;
+                    for(let i = 0; i < mappedComponents.length; i++){
+                        const finalSettingName = mappedComponents.length == 1 ? settingName : `${settingName} ${i}`;
 
-                        if(!sm.utils.areLooselyEqualValue(value, components[i].props.value, sm.memoryStorage.currentDefault.contents[settingPathInfo.basePath])){
+                        if(!sm.utils.areLooselyEqualValue(value, mappedComponents[i].component.props.value, sm.memoryStorage.currentDefault.contents[settingPathInfo.basePath])){
                             mergedComponentSettings[sectionName][finalSettingName] = value;
                         }
                     }
@@ -952,11 +956,11 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
         if(sm.componentMap.hasOwnProperty(settingPathInfo.basePath)){
             const componentData = sm.componentMap[settingPathInfo.basePath];
 
-            if(componentData.components.length == 1){
-                element.dataset['valueDiff'] = (componentData.components[0].props.value == value ? 'same' : 'changed');
+            if(componentData.entries.length == 1){
+                element.dataset['valueDiff'] = (componentData.entries[0].component.props.value == value ? 'same' : 'changed');
             }
             else{
-                element.dataset['valueDiff'] = (componentData.components[settingPathInfo.index].props.value == value ? 'same' : 'changed');
+                element.dataset['valueDiff'] = (componentData.entries[settingPathInfo.index].component.props.value == value ? 'same' : 'changed');
             }
         }
         else{
@@ -992,32 +996,10 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                 continue;
             }
 
-            componentData.components[settingPathInfo.index].props.value = settings[componentPath];
-            componentData.components[settingPathInfo.index].instance.$set({value: componentData.components[settingPathInfo.index].props.value});
+            componentData.entries[settingPathInfo.index].component.props.value = settings[componentPath];
+            componentData.entries[settingPathInfo.index].component.instance.$set({value: componentData.entries[settingPathInfo.index].component.props.value});
         }
     }
-
-    // sm.applyComponentSettings = function(settings: {[path: string]: any}): void{
-    //     for(let componentPath of Object.keys(settings)){
-    //         if(!sm.componentMap.hasOwnProperty(componentPath)){
-    //             componentPath = sm.utils.getBaseSettingPath(componentPath);
-    //         }
-
-    //         const componentData = sm.componentMap[componentPath];
-
-    //         if(!componentData){
-    //             console.warn(`[State Manager] Could not apply component path ${componentPath}`);
-    //             continue;
-    //         }
-
-    //         // for(const component of componentData.components){
-    //         for(let i = 0; i < componentData.components.length; i++){
-    //             const finalComponentPath = componentData.components.length == 1 ? componentPath : `${componentPath}/${i}`;
-    //             componentData.components[i].props.value = settings[finalComponentPath];
-    //             componentData.components[i].instance.$set({value: componentData.components[i].props.value});
-    //         }
-    //     }
-    // }
 
     sm.createInspectorSettingsAccordion = function(label: string, data: {[settingPath: string]: any} | HTMLElement): HTMLElement{
         const accordion = sm.createElementWithClassList('div', 'sd-webui-sm-inspector-category', 'block', 'gradio-accordion');
@@ -1260,14 +1242,11 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                     continue; // Skip other settings like min/max if they sneak in here
                 }
 
-                // let data: MappedComponent = {
-                //     component: component,
-                //     element: app.getElementById(component.props.elem_id || `component-${component.id}`)
-                // }
-
-                let data: MappedComponent = {
-                    components: [component],
-                    elements: [app.getElementById(component.props.elem_id || `component-${component.id}`)]
+                let data: MappedComponentData = {
+                    entries: [{
+                        component: component,
+                        element: app.getElementById(component.props.elem_id || `component-${component.id}`)
+                    }]
                 }
 
                 // I really, REALLY dislike adding exception cases for specific extensions, but ControlNet's such a pivotal one...
@@ -1276,8 +1255,10 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                     for(let i = 1; i < 3; i++){
                         const unitElemId = component.props.elem_id.replace('ControlNet-0_', `ControlNet-${i}_`);
 
-                        data.components.push(gradio_config.components.find(c => c.props.elem_id == unitElemId));
-                        data.elements.push(app.getElementById(unitElemId));
+                        data.entries.push({
+                            component: gradio_config.components.find(c => c.props.elem_id == unitElemId),
+                            element: app.getElementById(unitElemId)
+                        });
                     }
                 }
 
@@ -1300,12 +1281,14 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                     continue;
                 }
 
-                let data: MappedComponent = sm.componentMap[`${accordion.id.split('_')[0]}/${component.label}`];
+                let data: MappedComponentData = sm.componentMap[`${accordion.id.split('_')[0]}/${component.label}`];
 
                 if(!data){
                     data = {
-                        components: [component],
-                        elements: [checkbox!]
+                        entries: [{
+                            component: component,
+                            element: checkbox
+                        }]
                     };
 
                     switch(accordion.id){
@@ -1317,16 +1300,18 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                 // We could use data.element.addEventListener("change", ...) here, but I don't like the idea of adding a "global" listener
                 // like that, that extends outside the scope of this extension. Thus, a hacky data.onchange() that we call manually. Neat.
                 data.onChange = () => {
-                    visibleCheckbox.checked = (<HTMLInputElement>data.elements[0]).checked;
+                    visibleCheckbox.checked = (<HTMLInputElement>data.entries[0].element).checked;
                 };
             }
 
             const settingComponents = gradio_config.components.filter(c => c.props.elem_id?.startsWith('setting_'));
 
             for(const component of settingComponents) { // {path: id}
-                let data: MappedComponent = {
-                    components: [component],
-                    elements: [app.getElementById(component.props.elem_id)]
+                let data: MappedComponentData = {
+                    entries: [{
+                        component: component,
+                        element: app.getElementById(component.props.elem_id)
+                    }]
                 }
                 
                 sm.componentMap[component.props.elem_id.substring(8)] = data; // strips "setting_" so we get sm.componentMap['sd_model_checkpoint'] e.g.
@@ -1650,11 +1635,11 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                 
                 const value = savedComponentDefaults[settingPath];
 
-                const components = sm.componentMap[settingPath].components;
+                const mappedComponents = sm.componentMap[settingPath].entries;
 
-                for(let i=0; i < components.length; i++){
-                    if(!sm.utils.areLooselyEqualValue(value, components[i].props.value)){
-                        mergedComponentSettings[components.length == 1 ? settingPath : `${settingPath}/${i}`] = value;
+                for(let i=0; i < mappedComponents.length; i++){
+                    if(!sm.utils.areLooselyEqualValue(value, mappedComponents[i].component.props.value)){
+                        mergedComponentSettings[mappedComponents.length == 1 ? settingPath : `${settingPath}/${i}`] = value;
                     }
                 }
             }
@@ -1694,9 +1679,9 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
             // }
                 
             if(reType.test(componentPath)){
-                for(let i = 0; i < componentData.components.length; i++){
-                    const finalComponentPath = componentData.components.length == 1 ? componentPath : `${componentPath}/${i}`;
-                    const currentValue = componentData.components[i].props.value;
+                for(let i = 0; i < componentData.entries.length; i++){
+                    const finalComponentPath = componentData.entries.length == 1 ? componentPath : `${componentPath}/${i}`;
+                    const currentValue = componentData.entries[i].component.props.value;
 
                     if(!changedOnly || (sm.memoryStorage.currentDefault.contents[finalComponentPath] != currentValue)){
                         settings[finalComponentPath] = currentValue;
