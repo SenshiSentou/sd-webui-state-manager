@@ -23,8 +23,7 @@ settings_section = ('statemanager', "State Manager");
 script_base_dir = scripts.basedir();
 storage_file_path = path.join(script_base_dir, "history.txt")
 
-cached_blocks = None
-cached_map = {}
+# controlnet_components = []
 
 def update_storage_file_path():
     global storage_file_path
@@ -171,3 +170,13 @@ update_storage_file_path()
 
 script_callbacks.on_app_started(state_manager_api)
 script_callbacks.on_ui_settings(on_ui_settings)
+
+
+# def on_after_component(component, **kwargs):
+#     if 'elem_id' in kwargs:
+#         elem_id = kwargs['elem_id']
+#         if elem_id != None and 'controlnet' in elem_id:
+#             controlnet_components.append(component)
+#             print(f'Creating component with elem_id {kwargs["elem_id"]}')
+
+# script_callbacks.on_after_component(on_after_component)
