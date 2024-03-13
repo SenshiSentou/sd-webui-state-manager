@@ -71,6 +71,11 @@ interface Entry extends HTMLElement {
     data: State
 }
 
+interface InspectorParameter extends HTMLElement {
+    apply: () => void,
+    update: () => void
+}
+
 type GenerationType = 'txt2img' | 'img2img';
 type SelectionType = 'single' | 'add' | 'range';
 type Group = 'history' | 'favourites';
@@ -451,6 +456,15 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
         }
 
         sm.updateEntries();
+
+        app.addEventListener('input', sm.updateAllValueDiffDatas);
+        app.addEventListener('change', sm.updateAllValueDiffDatas);
+    }
+
+    sm.updateAllValueDiffDatas = function(){
+        for(const element of app.querySelectorAll('[data-value-diff]')){
+            element.update?.();
+        }
     }
 
     sm.createPillToggle = function(label: string, htmlProperties: {[title: string]: string}, checkboxId: string, isOn: boolean, onchange: (isOn: boolean) => void, immediatelyCallOnChange: boolean): HTMLElement{
@@ -561,9 +575,7 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
             entry.data = data;
             entry.style.backgroundImage = `url("${data.preview}")`;
             entry.style.display = 'inherit';
-            // entry.innerText = data.preview ? '' : data.generationSettings.prompt;
-            
-            // entry.childNodes[0].innerText = `${data.type == 'txt2img' ? '🖋' : '🖼️'} ${data.type}`;
+
             const creationDate = new Date(data.createdAt);
 
             entry.querySelector('.type').innerText = `${data.type == 'txt2img' ? '🖋' : '🖼️'} ${data.type}`;
@@ -580,11 +592,8 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                     sm.selection.select(entry, 'add');
                 }
                 else{
-                    // entries.querySelector('.active')?.classList.remove('active');
-                    // entry.classList.add('active');
                     sm.selection.select(entry, 'single');
                 }
-                // sm.updateInspector();
             }, {signal: entryEventListenerAbortController.signal});
             
             entry.addEventListener('dblclick', () => sm.applyAll(data), {signal: entryEventListenerAbortController.signal});
@@ -657,7 +666,6 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
         metaContainer.appendChild(loadAllButton);
 
         const viewSettingsContainer = sm.createElementWithClassList('div', 'category', 'view-settings-container');
-        // viewSettingsContainer.appendChild(sm.createPillToggle('◐', true, 'sd-webui-sm-inspector-view-coloured-labels', 'sd-webui-sm-inspector-view-coloured-labels-checkbox', (isOn: boolean) => sm.inspector.dataset['useColorCode'] = isOn, true));
         viewSettingsContainer.appendChild(sm.createPillToggle('', {title: "Color-code properties (green = unchanged, orange = missing from current UI, red = different from current UI)", id: 'sd-webui-sm-inspector-view-coloured-labels'}, 'sd-webui-sm-inspector-view-coloured-labels-checkbox', true, (isOn: boolean) => sm.inspector.dataset['useColorCode'] = isOn, true));
         viewSettingsContainer.appendChild(sm.createPillToggle('unchanged', {title: "Show unchanged properties", id: 'sd-webui-sm-inspector-view-unchanged'}, 'sd-webui-sm-inspector-view-unchanged-checkbox', true, (isOn: boolean) => sm.inspector.dataset['showUnchanged'] = isOn, true));
         viewSettingsContainer.appendChild(sm.createPillToggle('missing/obsolete', {title: "Show properties that are missing from the current UI", id: 'sd-webui-sm-inspector-view-missing'}, 'sd-webui-sm-inspector-view-missing-checkbox', true, (isOn: boolean) => sm.inspector.dataset['showMissing'] = isOn, true));
@@ -721,7 +729,6 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
             return quickSettingParameter;
         }
 
-        // const quickSettingsContainer = sm.createElementWithClassList('div', 'category');
         const quickSettingsContainer = sm.createElementWithClassList('div', 'sd-webui-sm-inspector-category-content');
 
         for(let settingName of mandatoryQuickSettings){
@@ -757,16 +764,20 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
             settingPaths.forEach(curatedSettingNames.add.bind(curatedSettingNames));
 
             const valueMap = settingPaths.reduce((values, settingPath) => {values[settingPath] = getSavedValue(settingPath); return values;}, {});
-            return sm.createInspectorParameter(label, displayValueFormatter(valueMap), () => sm.applyComponentSettings(valueMap));
+            const param = sm.createInspectorParameter(label, displayValueFormatter(valueMap), () => sm.applyComponentSettings(valueMap), () => sm.setValueDiffAttribute(param, ...Object.keys(valueMap).map(p => ({path: p, value: valueMap[p]}))));
+
+            param.update();
+            
+            return param;
         }
 
-        function _createGenerationInspectorParameter(label: string, settingPath: string, factory: (label: string, settingPath: string, onUse: (settings: any) => void) => HTMLElement): HTMLElement{
+        function _createGenerationInspectorParameter(label: string, settingPath: string, factory: (label: string, settingPath: string, onUse: (settings: any) => void, onUIUpdate: () => void) => InspectorParameter): HTMLElement{
             curatedSettingNames.add(settingPath);
 
             const value = getSavedValue(settingPath);
-            const parameter = factory(label, value, () => sm.applyComponentSettings({[settingPath]: value}));
+            const parameter = factory(label, value, () => sm.applyComponentSettings({[settingPath]: value}), () => sm.setValueDiffAttribute(parameter, {path: settingPath, value: value}));
 
-            sm.setValueDiffAttribute(parameter, settingPath, value);
+            parameter.update();
 
             return parameter;
         }
@@ -858,10 +869,6 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
        
        // Remove saved values if they're already used, or are equal to both the current UI *and* current default values
        let mergedComponentSettings = savedComponentSettings;
-       console.warn(mergedComponentSettings);
-       console.warn(JSON.stringify(mergedComponentSettings));
-       console.log("Flag a1: " + mergedComponentSettings['txt2img'].hasOwnProperty('Control Mode'));
-       console.log("Flag a2: " + mergedComponentSettings['txt2img'].hasOwnProperty('Control Mode/1'));
        
        for(const sectionName in mergedComponentSettings){
            const savedSettingNames = Object.keys(mergedComponentSettings[sectionName]);
@@ -877,9 +884,7 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                 }
             }
         }
-        
-        console.log("Flag b1: " + mergedComponentSettings['txt2img'].hasOwnProperty('Control Mode'));
-        console.log("Flag b2: " + mergedComponentSettings['txt2img'].hasOwnProperty('Control Mode/1'));
+
         // Add saved default value if it differs from the current UI *or* current default values, but not if it's already shown elsewhere (or isn't xxx2img-related)
         for(const sectionName in savedComponentDefaults){
             mergedComponentSettings[sectionName] = mergedComponentSettings[sectionName] || {};
@@ -893,28 +898,13 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
 
                 const settingPathInfo = sm.utils.getSettingPathInfo(settingPath);
 
-                if(settingPathInfo.basePath.indexOf('Control Mode') > -1){
-                    console.log('---> ' + settingPathInfo.basePath + " -> " + mergedComponentSettings[sectionName].hasOwnProperty(settingName));
-                }
-
                 // if settingName not in savedComponentSettings,  then 
                 if(!mergedComponentSettings[sectionName].hasOwnProperty(settingName)){
-                    // console.log(`${settingName} not found in merged comp. settings. Component map = ${sm.componentMap.hasOwnProperty(settingPath)}, ${sm.componentMap.hasOwnProperty(settingPath.replace(/\/\d+$/, ''))}`);
-
                     if(!sm.componentMap.hasOwnProperty(settingPathInfo.basePath)){ // possibly a rogue setting
                         continue;
                     }
 
-                    // if(!sm.componentMap.hasOwnProperty(settingPath) && !sm.componentMap.hasOwnProperty(settingPath.replace(/\/\d+$/, ''))){ // if it doesn't end in .../[number] indicating multiple components, it's a rogue setting
-                    //     continue;
-                    // }
-                    
                     const value = savedComponentDefaults[sectionName][settingName];
-
-                    // if(!sm.utils.areLooselyEqualValue(value, sm.componentMap[settingPath].component.props.value, sm.memoryStorage.currentDefault.contents[settingPath])){
-                    //     mergedComponentSettings[sectionName][settingName] = value;
-                    // }
-
                     const mappedComponents = sm.componentMap[settingPathInfo.basePath].entries;
 
                     for(let i = 0; i < mappedComponents.length; i++){
@@ -946,25 +936,25 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
             }
 
             sm.inspector.appendChild(sm.createInspectorSettingsAccordion(prettyLabelName, explicitSectionData));
-            // sm.inspector.appendChild(sm.createInspectorSettingsAccordion(prettyLabelName, mergedComponentSettings[sectionName]));
         }
     }
 
-    sm.setValueDiffAttribute = function(element: HTMLElement, settingPath: string, value: any): void{
-        const settingPathInfo = sm.utils.getSettingPathInfo(settingPath);
+    sm.setValueDiffAttribute = function(element: HTMLElement, ...settings: {path: string, value: any}[]): void{
+        element.dataset['valueDiff'] = 'same';
 
-        if(sm.componentMap.hasOwnProperty(settingPathInfo.basePath)){
-            const componentData = sm.componentMap[settingPathInfo.basePath];
+        for(const setting of settings){
+            const settingPathInfo = sm.utils.getSettingPathInfo(setting.path);
 
-            if(componentData.entries.length == 1){
-                element.dataset['valueDiff'] = (componentData.entries[0].component.props.value == value ? 'same' : 'changed');
+            if(sm.componentMap.hasOwnProperty(settingPathInfo.basePath)){
+                if(sm.componentMap[settingPathInfo.basePath].entries[settingPathInfo.index].component.props.value != setting.value){
+                    element.dataset['valueDiff'] =  'changed';
+                    break;
+                }
             }
             else{
-                element.dataset['valueDiff'] = (componentData.entries[settingPathInfo.index].component.props.value == value ? 'same' : 'changed');
+                element.dataset['valueDiff'] = 'missing';
+                break;
             }
-        }
-        else{
-            element.dataset['valueDiff'] = 'missing';
         }
     }
 
@@ -998,6 +988,10 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
 
             componentData.entries[settingPathInfo.index].component.props.value = settings[componentPath];
             componentData.entries[settingPathInfo.index].component.instance.$set({value: componentData.entries[settingPathInfo.index].component.props.value});
+
+            const e = new Event("change", {bubbles: true});
+            Object.defineProperty(e, "target", {value: componentData.entries[settingPathInfo.index].element});
+            componentData.entries[settingPathInfo.index].element.dispatchEvent(e);
         }
     }
 
@@ -1017,7 +1011,7 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                     sm.applyComponentSettings({[settingPath]: data[settingPath]});
                 });
 
-                sm.setValueDiffAttribute(parameter, settingPath, data[settingPath]);
+                sm.setValueDiffAttribute(parameter, {path: settingPath, value: data[settingPath]});
                 content.appendChild(parameter);
             }
         }
@@ -1053,9 +1047,10 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
         return accordion;
     }
 
-    sm.createInspectorPromptSection = function(label: string, prompt: string, onUse: () => void){
+    sm.createInspectorPromptSection = function(label: string, prompt: string, onUse: () => void, onUIUpdate: () => void){
         const promptContainer = sm.createElementWithClassList('div', 'prompt-container', 'sd-webui-sm-inspector-param', sm.svelteClasses.prompt);
         promptContainer.apply = onUse;
+        promptContainer.update = onUIUpdate;
         
         const promptField = sm.createElementWithInnerTextAndClassList('textarea', prompt, 'prompt');
         promptField.readOnly = true;
@@ -1138,9 +1133,10 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
         return labelWithCheckbox;
     }
 
-    sm.createInspectorParameter = function(label: string, value: any, onUse: () => void): HTMLElement{
+    sm.createInspectorParameter = function(label: string, value: any, onUse: () => void, onUIUpdate: () => void): HTMLElement{
         const paramContainer = sm.createElementWithClassList('div', 'sd-webui-sm-inspector-param');
         paramContainer.apply = onUse;
+        paramContainer.update = onUIUpdate;
 
         paramContainer.appendChild(sm.createInspectorLabel(label));
         paramContainer.appendChild(sm.createInspectorParameterSection(value, onUse));
@@ -1159,7 +1155,6 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
             defaults: sm.memoryStorage.currentDefault.hash,
             quickSettings: await sm.getQuickSettings(),
             componentSettings: sm.getComponentSettings(type, true),
-            // addedSettings, face rstore, face restore model, tiling
             preview: sm.createPreviewImageData()
         };
     }
@@ -1674,9 +1669,6 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
 
             
             const reType = new RegExp(`(^|\/)${type}/`);
-            // if(reType.test(componentPath) && (!changedOnly || sm.memoryStorage.currentDefault.contents[componentPath] != currentValue)){
-            //     settings[componentPath] = currentValue;
-            // }
                 
             if(reType.test(componentPath)){
                 for(let i = 0; i < componentData.entries.length; i++){
@@ -1689,10 +1681,6 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
                 }   
             }
         }
-
-        // if(noComponentFoundSettings.length > 0){
-        //     console.warn(`[State Manager] No matching component could be found for the following settings: ${noComponentFoundSettings.join(', ')}`);
-        // }
 
         return settings;
     }

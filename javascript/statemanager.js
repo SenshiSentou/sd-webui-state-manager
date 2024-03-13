@@ -289,6 +289,13 @@
             return originaSubmitImg2img(...arguments);
         };
         sm.updateEntries();
+        app.addEventListener('input', sm.updateAllValueDiffDatas);
+        app.addEventListener('change', sm.updateAllValueDiffDatas);
+    };
+    sm.updateAllValueDiffDatas = function () {
+        for (const element of app.querySelectorAll('[data-value-diff]')) {
+            element.update?.();
+        }
     };
     sm.createPillToggle = function (label, htmlProperties, checkboxId, isOn, onchange, immediatelyCallOnChange) {
         const container = sm.createElementWithClassList('div', 'sd-webui-sm-pill-toggle');
