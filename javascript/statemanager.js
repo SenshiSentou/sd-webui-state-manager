@@ -380,8 +380,6 @@
             entry.data = data;
             entry.style.backgroundImage = `url("${data.preview}")`;
             entry.style.display = 'inherit';
-            // entry.innerText = data.preview ? '' : data.generationSettings.prompt;
-            // entry.childNodes[0].innerText = `${data.type == 'txt2img' ? '🖋' : '🖼️'} ${data.type}`;
             const creationDate = new Date(data.createdAt);
             entry.querySelector('.type').innerText = `${data.type == 'txt2img' ? '🖋' : '🖼️'} ${data.type}`;
             entry.querySelector('.date').innerText = `${creationDate.getDate().toString().padStart(2, '0')}-${(creationDate.getMonth() + 1).toString().padStart(2, '0')}-${creationDate.getFullYear().toString().padStart(2, '0')}`;
@@ -395,11 +393,8 @@
                     sm.selection.select(entry, 'add');
                 }
                 else {
-                    // entries.querySelector('.active')?.classList.remove('active');
-                    // entry.classList.add('active');
                     sm.selection.select(entry, 'single');
                 }
-                // sm.updateInspector();
             }, { signal: entryEventListenerAbortController.signal });
             entry.addEventListener('dblclick', () => sm.applyAll(data), { signal: entryEventListenerAbortController.signal });
         }
@@ -454,7 +449,6 @@
         metaContainer.appendChild(deleteButton);
         metaContainer.appendChild(loadAllButton);
         const viewSettingsContainer = sm.createElementWithClassList('div', 'category', 'view-settings-container');
-        // viewSettingsContainer.appendChild(sm.createPillToggle('◐', true, 'sd-webui-sm-inspector-view-coloured-labels', 'sd-webui-sm-inspector-view-coloured-labels-checkbox', (isOn: boolean) => sm.inspector.dataset['useColorCode'] = isOn, true));
         viewSettingsContainer.appendChild(sm.createPillToggle('', { title: "Color-code properties (green = unchanged, orange = missing from current UI, red = different from current UI)", id: 'sd-webui-sm-inspector-view-coloured-labels' }, 'sd-webui-sm-inspector-view-coloured-labels-checkbox', true, (isOn) => sm.inspector.dataset['useColorCode'] = isOn, true));
         viewSettingsContainer.appendChild(sm.createPillToggle('unchanged', { title: "Show unchanged properties", id: 'sd-webui-sm-inspector-view-unchanged' }, 'sd-webui-sm-inspector-view-unchanged-checkbox', true, (isOn) => sm.inspector.dataset['showUnchanged'] = isOn, true));
         viewSettingsContainer.appendChild(sm.createPillToggle('missing/obsolete', { title: "Show properties that are missing from the current UI", id: 'sd-webui-sm-inspector-view-missing' }, 'sd-webui-sm-inspector-view-missing-checkbox', true, (isOn) => sm.inspector.dataset['showMissing'] = isOn, true));
@@ -503,7 +497,6 @@
             quickSettingsContainer.appendChild(quickSettingParameter);
             return quickSettingParameter;
         }
-        // const quickSettingsContainer = sm.createElementWithClassList('div', 'category');
         const quickSettingsContainer = sm.createElementWithClassList('div', 'sd-webui-sm-inspector-category-content');
         for (let settingName of mandatoryQuickSettings) {
             const quickSettingParameter = createQuickSetting(quickSettingLabelRenames[settingName], settingName);
@@ -529,13 +522,15 @@
         function createCompositeInspectorParameter(label, displayValueFormatter, settingPaths) {
             settingPaths.forEach(curatedSettingNames.add.bind(curatedSettingNames));
             const valueMap = settingPaths.reduce((values, settingPath) => { values[settingPath] = getSavedValue(settingPath); return values; }, {});
-            return sm.createInspectorParameter(label, displayValueFormatter(valueMap), () => sm.applyComponentSettings(valueMap));
+            const param = sm.createInspectorParameter(label, displayValueFormatter(valueMap), () => sm.applyComponentSettings(valueMap), () => sm.setValueDiffAttribute(param, ...Object.keys(valueMap).map(p => ({ path: p, value: valueMap[p] }))));
+            param.update();
+            return param;
         }
         function _createGenerationInspectorParameter(label, settingPath, factory) {
             curatedSettingNames.add(settingPath);
             const value = getSavedValue(settingPath);
-            const parameter = factory(label, value, () => sm.applyComponentSettings({ [settingPath]: value }));
-            sm.setValueDiffAttribute(parameter, settingPath, value);
+            const parameter = factory(label, value, () => sm.applyComponentSettings({ [settingPath]: value }), () => sm.setValueDiffAttribute(parameter, { path: settingPath, value: value }));
+            parameter.update();
             return parameter;
         }
         function createGenerationInspectorPromptParameter(label, settingPath) {
@@ -606,10 +601,6 @@
         */
         // Remove saved values if they're already used, or are equal to both the current UI *and* current default values
         let mergedComponentSettings = savedComponentSettings;
-        console.warn(mergedComponentSettings);
-        console.warn(JSON.stringify(mergedComponentSettings));
-        console.log("Flag a1: " + mergedComponentSettings['txt2img'].hasOwnProperty('Control Mode'));
-        console.log("Flag a2: " + mergedComponentSettings['txt2img'].hasOwnProperty('Control Mode/1'));
         for (const sectionName in mergedComponentSettings) {
             const savedSettingNames = Object.keys(mergedComponentSettings[sectionName]);
             for (const settingName of savedSettingNames) {
@@ -622,8 +613,6 @@
                 }
             }
         }
-        console.log("Flag b1: " + mergedComponentSettings['txt2img'].hasOwnProperty('Control Mode'));
-        console.log("Flag b2: " + mergedComponentSettings['txt2img'].hasOwnProperty('Control Mode/1'));
         // Add saved default value if it differs from the current UI *or* current default values, but not if it's already shown elsewhere (or isn't xxx2img-related)
         for (const sectionName in savedComponentDefaults) {
             mergedComponentSettings[sectionName] = mergedComponentSettings[sectionName] || {};
@@ -633,22 +622,12 @@
                     continue;
                 }
                 const settingPathInfo = sm.utils.getSettingPathInfo(settingPath);
-                if (settingPathInfo.basePath.indexOf('Control Mode') > -1) {
-                    console.log('---> ' + settingPathInfo.basePath + " -> " + mergedComponentSettings[sectionName].hasOwnProperty(settingName));
-                }
                 // if settingName not in savedComponentSettings,  then 
                 if (!mergedComponentSettings[sectionName].hasOwnProperty(settingName)) {
-                    // console.log(`${settingName} not found in merged comp. settings. Component map = ${sm.componentMap.hasOwnProperty(settingPath)}, ${sm.componentMap.hasOwnProperty(settingPath.replace(/\/\d+$/, ''))}`);
                     if (!sm.componentMap.hasOwnProperty(settingPathInfo.basePath)) { // possibly a rogue setting
                         continue;
                     }
-                    // if(!sm.componentMap.hasOwnProperty(settingPath) && !sm.componentMap.hasOwnProperty(settingPath.replace(/\/\d+$/, ''))){ // if it doesn't end in .../[number] indicating multiple components, it's a rogue setting
-                    //     continue;
-                    // }
                     const value = savedComponentDefaults[sectionName][settingName];
-                    // if(!sm.utils.areLooselyEqualValue(value, sm.componentMap[settingPath].component.props.value, sm.memoryStorage.currentDefault.contents[settingPath])){
-                    //     mergedComponentSettings[sectionName][settingName] = value;
-                    // }
                     const mappedComponents = sm.componentMap[settingPathInfo.basePath].entries;
                     for (let i = 0; i < mappedComponents.length; i++) {
                         const finalSettingName = mappedComponents.length == 1 ? settingName : `${settingName} ${i}`;
@@ -672,22 +651,22 @@
                 explicitSectionData[`${sectionName}/${settingPath}`] = sectionSettings[settingPath];
             }
             sm.inspector.appendChild(sm.createInspectorSettingsAccordion(prettyLabelName, explicitSectionData));
-            // sm.inspector.appendChild(sm.createInspectorSettingsAccordion(prettyLabelName, mergedComponentSettings[sectionName]));
         }
     };
-    sm.setValueDiffAttribute = function (element, settingPath, value) {
-        const settingPathInfo = sm.utils.getSettingPathInfo(settingPath);
-        if (sm.componentMap.hasOwnProperty(settingPathInfo.basePath)) {
-            const componentData = sm.componentMap[settingPathInfo.basePath];
-            if (componentData.entries.length == 1) {
-                element.dataset['valueDiff'] = (componentData.entries[0].component.props.value == value ? 'same' : 'changed');
+    sm.setValueDiffAttribute = function (element, ...settings) {
+        element.dataset['valueDiff'] = 'same';
+        for (const setting of settings) {
+            const settingPathInfo = sm.utils.getSettingPathInfo(setting.path);
+            if (sm.componentMap.hasOwnProperty(settingPathInfo.basePath)) {
+                if (sm.componentMap[settingPathInfo.basePath].entries[settingPathInfo.index].component.props.value != setting.value) {
+                    element.dataset['valueDiff'] = 'changed';
+                    break;
+                }
             }
             else {
-                element.dataset['valueDiff'] = (componentData.entries[settingPathInfo.index].component.props.value == value ? 'same' : 'changed');
+                element.dataset['valueDiff'] = 'missing';
+                break;
             }
-        }
-        else {
-            element.dataset['valueDiff'] = 'missing';
         }
     };
     sm.applyQuickParameters = async function (values, ...filter) {
@@ -714,6 +693,9 @@
             }
             componentData.entries[settingPathInfo.index].component.props.value = settings[componentPath];
             componentData.entries[settingPathInfo.index].component.instance.$set({ value: componentData.entries[settingPathInfo.index].component.props.value });
+            const e = new Event("change", { bubbles: true });
+            Object.defineProperty(e, "target", { value: componentData.entries[settingPathInfo.index].element });
+            componentData.entries[settingPathInfo.index].element.dispatchEvent(e);
         }
     };
     sm.createInspectorSettingsAccordion = function (label, data) {
@@ -727,7 +709,7 @@
                 const parameter = sm.createInspectorParameter(settingPath.split('/').slice(1).join('/'), data[settingPath], () => {
                     sm.applyComponentSettings({ [settingPath]: data[settingPath] });
                 });
-                sm.setValueDiffAttribute(parameter, settingPath, data[settingPath]);
+                sm.setValueDiffAttribute(parameter, { path: settingPath, value: data[settingPath] });
                 content.appendChild(parameter);
             }
         }
@@ -755,9 +737,10 @@
         });
         return accordion;
     };
-    sm.createInspectorPromptSection = function (label, prompt, onUse) {
+    sm.createInspectorPromptSection = function (label, prompt, onUse, onUIUpdate) {
         const promptContainer = sm.createElementWithClassList('div', 'prompt-container', 'sd-webui-sm-inspector-param', sm.svelteClasses.prompt);
         promptContainer.apply = onUse;
+        promptContainer.update = onUIUpdate;
         const promptField = sm.createElementWithInnerTextAndClassList('textarea', prompt, 'prompt');
         promptField.readOnly = true;
         const promptButtons = sm.createElementWithClassList('div', 'prompt-button-container');
@@ -769,6 +752,7 @@
         promptContainer.appendChild(sm.createInspectorLabel(label));
         promptContainer.appendChild(promptField);
         promptContainer.appendChild(promptButtons);
+        promptContainer.addEventListener('click', e => e.stopPropagation());
         return promptContainer;
     };
     sm.createInspectorParameterSection = function (value, onUse) {
@@ -817,9 +801,10 @@
         labelWithCheckbox.appendChild(sm.createElementWithInnerTextAndClassList('span', label, 'label'));
         return labelWithCheckbox;
     };
-    sm.createInspectorParameter = function (label, value, onUse) {
+    sm.createInspectorParameter = function (label, value, onUse, onUIUpdate) {
         const paramContainer = sm.createElementWithClassList('div', 'sd-webui-sm-inspector-param');
         paramContainer.apply = onUse;
+        paramContainer.update = onUIUpdate;
         paramContainer.appendChild(sm.createInspectorLabel(label));
         paramContainer.appendChild(sm.createInspectorParameterSection(value, onUse));
         return paramContainer;
@@ -834,7 +819,6 @@
             defaults: sm.memoryStorage.currentDefault.hash,
             quickSettings: await sm.getQuickSettings(),
             componentSettings: sm.getComponentSettings(type, true),
-            // addedSettings, face rstore, face restore model, tiling
             preview: sm.createPreviewImageData()
         };
     };
@@ -1255,9 +1239,6 @@
                 continue;
             }
             const reType = new RegExp(`(^|\/)${type}/`);
-            // if(reType.test(componentPath) && (!changedOnly || sm.memoryStorage.currentDefault.contents[componentPath] != currentValue)){
-            //     settings[componentPath] = currentValue;
-            // }
             if (reType.test(componentPath)) {
                 for (let i = 0; i < componentData.entries.length; i++) {
                     const finalComponentPath = componentData.entries.length == 1 ? componentPath : `${componentPath}/${i}`;
@@ -1268,9 +1249,6 @@
                 }
             }
         }
-        // if(noComponentFoundSettings.length > 0){
-        //     console.warn(`[State Manager] No matching component could be found for the following settings: ${noComponentFoundSettings.join(', ')}`);
-        // }
         return settings;
     };
     sm.createPreviewImageData = function () {

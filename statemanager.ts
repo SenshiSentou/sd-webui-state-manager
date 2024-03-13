@@ -1068,6 +1068,8 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
         promptContainer.appendChild(promptField);
         promptContainer.appendChild(promptButtons);
 
+        promptContainer.addEventListener('click', e => e.stopPropagation());
+
         return promptContainer;
     }
 

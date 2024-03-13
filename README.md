@@ -1,3 +1,5 @@
+<img src="https://github.com/SenshiSentou/sd-webui-state-manager/blob/V2.0-beta/toma-chan.png" width="300">
+
 <img src="https://github.com/SenshiSentou/sd-webui-state-manager/blob/main/preview-docked.png" width="400" />
 <img src="https://github.com/SenshiSentou/sd-webui-state-manager/blob/main/preview-modal.png" width="400" />
 
