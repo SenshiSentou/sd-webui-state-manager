@@ -242,7 +242,7 @@
     /* position: relative; */
     /* display: flex;
     flex-direction: row; */
-    height: calc(100% - 4em);
+    height: calc(100% - 4.6em);
     overflow: hidden scroll;
     /* height: 100%; */
     /* border: 1px solid var(--border-color-primary); */
@@ -346,7 +346,12 @@
 .sd-webui-sm-entry-footer {
     display: flex;
     justify-content: space-between;
-    margin: 0 7px;
+    height: 2.6em;
+    place-items: center;
+    margin: 0;
+    padding: 0 10px;
+    background: none !important;
+    border: none !important;
 }
 
 .sd-webui-sm-entry-footer .button-navigation {
@@ -355,13 +360,13 @@
     flex-basis: content;
     /* display: inline-block !important; */
     justify-content: center;
-    background-color: var(--background-fill-primary);
-    height: 2em;
+    /* background-color: var(--background-fill-primary); */
+    /* height: 2.6em; */
     /* position: absolute; */
     bottom: 0;
     width: 100%;
     display: flex;
-    padding: 5px;
+    /* padding: 5px; */
     font-family: sans-serif;
     font-size: 0.8em;
     color: var(--neutral-700);
@@ -381,15 +386,6 @@
     height: 1.5em;
     appearance: unset !important;
     margin: 0 3px;
-
-    outline: none !important;
-    box-shadow: var(--input-shadow);
-    border: var(--input-border-width) solid var(--input-border-color);
-    border-radius: var(--input-radius) !important;
-    background: var(--input-background-fill);
-    padding: var(--size-2) var(--size-2) !important;
-    border-color: var(--block-border-color) !important;
-    box-shadow: var(--input-shadow) !important;
 }
 
 .sd-webui-sm-entry-header input {
@@ -398,7 +394,7 @@
     box-shadow: var(--input-shadow);
     border: var(--input-border-width) solid var(--input-border-color);
     border-radius: var(--input-radius) !important;
-    background: var(--input-background-fill);
+    background: var(--input-background-fill) !important;
     padding: var(--size-2) var(--size-2) !important;
     border-color: var(--block-border-color) !important;
     box-shadow: var(--input-shadow) !important;
@@ -436,6 +432,9 @@
     /* height: 33vh; */
     /* background-color: black; */
     overflow: scroll;
+}
+
+.sd-webui-sm-entry-header input, .sd-webui-sm-entry-footer input {
 }
 
 .sd-webui-sm-modal-panel .sd-webui-sm-inspector {
