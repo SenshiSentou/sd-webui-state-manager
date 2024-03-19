@@ -484,6 +484,9 @@
     overflow: scroll;
 }
 
+.sd-webui-sm-entry-header input, .sd-webui-sm-entry-footer input {
+}
+
 .sd-webui-sm-modal-panel .sd-webui-sm-inspector {
     padding-left: var(--modal-padding);
 }
