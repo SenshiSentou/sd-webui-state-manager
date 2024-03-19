@@ -1,15 +1,13 @@
 import gradio as gr
-import modules.script_callbacks as script_callbacks
-
-import json
-import hashlib
-
-from os import path
-from typing import Annotated
-
 from fastapi import FastAPI, Body
 from pydantic import BaseModel
 
+import json
+import hashlib
+from os import path
+from typing import Annotated
+
+import modules.script_callbacks as script_callbacks
 from modules import shared, scripts
 
 class ContentsDataModel(BaseModel):
@@ -23,7 +21,6 @@ settings_section = ('statemanager', "State Manager");
 script_base_dir = scripts.basedir();
 storage_file_path = path.join(script_base_dir, "history.txt")
 
-# controlnet_components = []
 
 def update_storage_file_path():
     global storage_file_path
@@ -33,8 +30,8 @@ def update_storage_file_path():
     except AttributeError:
         storage_file_path = path.join(script_base_dir, "history.txt")
 
-    # with open(storage_file_path, 'a+') as f: # Just make sure it exists, create if not
-    #     pass
+    with open(storage_file_path, 'a+') as f: # Just make sure it exists, create if not
+        pass
 
 # https://stackoverflow.com/questions/22058048/hashing-a-file-in-python
 def sha256sum(filepath):
@@ -118,6 +115,15 @@ def state_manager_api(blocks: gr.Blocks, app: FastAPI):
             gr.Error(message.contents)
         
         return {"success": True}
+    
+    @app.post("/statemanager/exportlegacy")
+    def export_legacy_data(data: ContentsDataModel):
+        legacy_file_path = path.join(script_base_dir, "v1_data.json");
+
+        with open(legacy_file_path, 'w') as f:
+            f.write(json.dumps(json.loads(data.contents), indent=4))
+        
+        return {"success": True, "path": legacy_file_path}
 
 def on_ui_settings():
     options = {
@@ -159,9 +165,6 @@ shared.options_templates.update(
             "statemanager_file2idb_merge": StateManagerOptionButton('Copy File to Indexed DB (merge)', None, "stateManager.syncStorage('file2idb', 'merge')", variant="primary"),
             "statemanager_idb_clear": StateManagerOptionButton('Delete all data from Indexed DB', None, "stateManager.clearData('Browser's Indexed DB')"),
             "statemanager_file_clear": StateManagerOptionButton('Delete all data from File', None, "stateManager.clearData('File')"),
-            # "statemanager_update_components": StateManagerUpdateButton('INTERNAL COMPONENT UPDATE', test, [cached_map[comp_name] for comp_name in list(x for x in cached_map.values())], None, None),
-            # "statemanager_export_idb": StateManagerOptionButton('Export Indexed DB to file', None, "stateManager.syncStorage('localStorage', true)"),
-            # "statemanager_import_idb": StateManagerOptionButton('Copy Indexed DB to File (merge)', None, "stateManager.syncStorage('localStorage', true)"),
         }
     )
 )
@@ -170,13 +173,3 @@ update_storage_file_path()
 
 script_callbacks.on_app_started(state_manager_api)
 script_callbacks.on_ui_settings(on_ui_settings)
-
-
-# def on_after_component(component, **kwargs):
-#     if 'elem_id' in kwargs:
-#         elem_id = kwargs['elem_id']
-#         if elem_id != None and 'controlnet' in elem_id:
-#             controlnet_components.append(component)
-#             print(f'Creating component with elem_id {kwargs["elem_id"]}')
-
-# script_callbacks.on_after_component(on_after_component)

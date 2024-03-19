@@ -219,9 +219,10 @@
     background-color: var(--primary-400);
     /* background-color: var(--secondary-600); */
     /* background-color: var(--neutral-600); */
-    background-color: white;
+    /* background-color: white; */
     /* color: var(--checkbox-background-color) !important; */
     /* color: var(--button-primary-text-color) !important; */
+    color: white !important;
     width: unset !important;
     /* height: unset !important; */
     background-image: none !important;
@@ -259,7 +260,7 @@
     /* position: relative; */
     /* display: flex;
     flex-direction: row; */
-    height: calc(100% - 4em);
+    height: calc(100% - 4.6em);
     overflow: hidden scroll;
     /* height: 100%; */
     /* border: 1px solid var(--border-color-primary); */
@@ -387,7 +388,12 @@
 .sd-webui-sm-entry-footer {
     display: flex;
     justify-content: space-between;
-    margin: 0 7px;
+    height: 2.6em;
+    place-items: center;
+    margin: 0;
+    padding: 0 10px;
+    background: none !important;
+    border: none !important;
 }
 
 .sd-webui-sm-entry-footer .button-navigation {
@@ -396,13 +402,13 @@
     flex-basis: content;
     /* display: inline-block !important; */
     justify-content: center;
-    background-color: var(--background-fill-primary);
-    height: 2em;
+    /* background-color: var(--background-fill-primary); */
+    /* height: 2.6em; */
     /* position: absolute; */
     bottom: 0;
     width: 100%;
     display: flex;
-    padding: 5px;
+    /* padding: 5px; */
     font-family: sans-serif;
     font-size: 0.8em;
     color: var(--neutral-700);
@@ -422,24 +428,18 @@
     height: 1.5em;
     appearance: unset !important;
     margin: 0 3px;
-
-    outline: none !important;
-    box-shadow: var(--input-shadow);
-    border: var(--input-border-width) solid var(--input-border-color);
-    border-radius: var(--input-radius) !important;
-    background: var(--input-background-fill);
-    padding: var(--size-2) var(--size-2) !important;
-    border-color: var(--block-border-color) !important;
-    box-shadow: var(--input-shadow) !important;
 }
 
 .sd-webui-sm-entry-header input {
     flex-grow: 1;
+}
+
+.sd-webui-sm-entry-header input, .sd-webui-sm-entry-footer input {
     outline: none !important;
     box-shadow: var(--input-shadow);
     border: var(--input-border-width) solid var(--input-border-color);
     border-radius: var(--input-radius) !important;
-    background: var(--input-background-fill);
+    background: var(--input-background-fill) !important;
     padding: var(--size-2) var(--size-2) !important;
     border-color: var(--block-border-color) !important;
     box-shadow: var(--input-shadow) !important;
@@ -841,4 +841,44 @@
 
 .sd-webui-statemanager-option-button:first-child {
     margin-top: 0.75em;
+}
+
+.sd-webui-sm-info h1 {
+    font-weight: 900;
+    font-size: 4em;
+}
+
+.sd-webui-sm-info a {
+    color: var(--link-text-color);
+}
+
+.sd-webui-sm-info pre {
+    display: inline-block;
+    /* background: var(--border-color-accent); */
+    background: #CCC4;
+    border-radius: 4px;
+    padding: 0 4px;
+    font-size: 0.8em;
+}
+
+.sd-webui-sm-info .sd-webui-sm-button-container {
+    display: inline-flex;
+    flex-direction: column;  
+    gap: 0.5em;
+    margin-top: 2em;
+}
+
+.sd-webui-sm-info .sd-webui-sm-button-container button {
+    background: var(--primary-500);
+    padding: 3px 15px;
+    border-radius: 4px;
+    display: block;
+    text-align:center;
+    align-items: center;
+    width: auto;
+    color: white;
+}
+
+.sd-webui-sm-info .sd-webui-sm-button-container button:first-child {
+    background: var(--secondary-600);
 }

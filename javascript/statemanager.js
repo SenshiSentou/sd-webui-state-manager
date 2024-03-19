@@ -138,13 +138,56 @@
         quickSettingSaveGeneratedButton.addEventListener('blur', quickSettingSaveButtonBlur);
         sm.panelContainer = sm.createElementWithClassList('div', 'sd-webui-sm-panel-container');
         const panel = sm.createElementWithClassList('div', 'sd-webui-sm-side-panel');
+        if (sm.hasOwnProperty('legacyData')) {
+            const infoDiv = sm.createElementWithClassList('div', 'sd-webui-sm-info');
+            infoDiv.appendChild(sm.createElementWithInnerTextAndClassList('h1', "⚠️ Warning ⚠️"));
+            const messageDiv = sm.createElementWithClassList('div');
+            messageDiv.innerHTML = " \
+            You are currently using State Manager 2.0, but your localstorage contains saved data from the previous version. Unfortunately, the two are not compatible. \
+            <br><br> \
+            If you wish to continue using this new version, you will lose your old saved states. If you want, you can click the button below to first export your existing data to a somewhat human-readable format and store in it a file for future reference. \
+            <br><br> \
+            If you would prefer to go back to version 1.0, you can either: \
+            <br><br> \
+            <ul> \
+            <li>Go to <a href='https://github.com/SenshiSentou/sd-webui-state-manager'>the State Manager GitHub page</a>, select the <pre>V1.0-legacy</pre> branch, download the zip, and replace the <pre>sd-webui/extensions/sd-webui-state-manager</pre> folder with it.</li> \
+            <li>Open a terminal, navigate (<pre>cd</pre>) to your <pre>sd-webui/extensions/sd-webui-state-manager</pre> folder, and run <pre>git checkout V1.0-legacy</pre>.</li> \
+            </ul> \
+            ";
+            infoDiv.appendChild(messageDiv);
+            const buttonContainer = sm.createElementWithClassList('div', 'sd-webui-sm-button-container');
+            const exportButton = sm.createElementWithInnerTextAndClassList('button', "Export old save data to JSON file");
+            exportButton.addEventListener('click', () => {
+                sm.api.post("exportlegacy", { contents: JSON.stringify(sm.legacyData) })
+                    .then(response => {
+                    if (!sm.utils.isValidResponse(response, 'success', 'path') || !response.success) {
+                        Promise.reject(response);
+                        return;
+                    }
+                    alert(`Success! The save data was succesfully exported to ${response.path}`);
+                })
+                    .catch(e => alert(`There was an error exporting the data: ${e}`));
+            });
+            const continueButton = sm.createElementWithInnerTextAndClassList('button', "Delete old save data and refresh the page (this cannot be undone!)");
+            continueButton.addEventListener('click', () => {
+                sm.ldb.delete('sd-webui-state-manager-data', () => location.reload());
+            });
+            buttonContainer.appendChild(exportButton);
+            buttonContainer.appendChild(continueButton);
+            infoDiv.appendChild(buttonContainer);
+            panel.appendChild(infoDiv);
+            sm.panelContainer.appendChild(panel);
+            app.querySelector('.contain').appendChild(sm.panelContainer);
+            sm.panelContainer.classList.add('sd-webui-sm-modal-panel');
+            sm.panelContainer.classList.add('open');
+            return;
+        }
         const nav = sm.createElementWithClassList('div', 'sd-webui-sm-navigation');
         sm.inspector = sm.createElementWithClassList('div', 'sd-webui-sm-inspector');
         // Tabs
         const navTabs = sm.createElementWithClassList('div', 'tabs', 'gradio-tabs', sm.svelteClasses.tab);
         function createNavTab(label, group, isSelected) {
-            const button = sm.createElementWithClassList('button', sm.svelteClasses.tab);
-            button.innerText = label;
+            const button = sm.createElementWithInnerTextAndClassList('button', label, sm.svelteClasses.tab);
             if (isSelected) {
                 button.classList.add('selected');
             }
@@ -972,7 +1015,7 @@
             };
         }
         let bytes = storedData;
-        if (!(storedData instanceof Uint8Array)) { // Data is in "legacy" SM 1.0 format, which was wrong and wasteful, or stringified response from file through FastAPI
+        if (!(storedData instanceof Uint8Array)) { // Data is in "legacy" SM 1.0 format
             bytes = Uint8Array.from(JSON.parse(storedData));
         }
         const decompressed = await sm.utils.decompress(bytes);
@@ -1047,6 +1090,10 @@
         return compressed;
     };
     sm.initMemoryStorage = async function (storedData) {
+        if (!storedData.hasOwnProperty('defaults')) {
+            sm.legacyData = storedData;
+            return;
+        }
         sm.memoryStorage = {
             currentDefault: null,
             savedDefaults: storedData.defaults || {},
