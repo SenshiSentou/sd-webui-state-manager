@@ -31,10 +31,6 @@ By default auto-save is on, and every time you generate an image in either txt2i
 
 If you'd rather save your entries manually, just turn off the toggle in the state browser panel, and use the second button on the top (⌛💾) to add them that way.
 
-# Known shortcomings
-
-Unfortunately there is no clean way to access gradio data on the client side, so all settings are saved and mapped by their UI label. If these labels ever change – whether by update or a different translation/ i18n language – old settings will no longer apply. This does unfortunately make this extension a bit fragile.
-
 # Installation
 
 Open your A1111 Web UI and go to `Extensions > Install from URL`. Paste in the link to this repo (`https://github.com/SenshiSentou/sd-webui-state-manager.git`), click `Install` and restart the web ui. Badabing badaboom, baby!
