@@ -46,7 +46,7 @@ def sha256sum(filepath):
 def state_manager_api(blocks: gr.Blocks, app: FastAPI):
     @app.get("/statemanager/version")
     async def version():
-        return {"version": "2.0-beta-r1"}
+        return {"version": "2.0"}
 
     @app.get("/statemanager/componentids")
     async def get_component_ids():
@@ -55,7 +55,7 @@ def state_manager_api(blocks: gr.Blocks, app: FastAPI):
     @app.get("/statemanager/uidefaults")
     async def get_ui_defaults():
         filepath = path.join(scripts.basedir(), "ui-config.json")
-                             
+        
         with open(filepath, 'r', encoding='utf-8') as f:
             contents = json.load(f)
             
