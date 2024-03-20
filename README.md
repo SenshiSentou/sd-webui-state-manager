@@ -5,10 +5,6 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/J3J81VHA2)
 
-# [W.I.P.] This extension is in open beta!
-
-Please be aware that this extension has not been thoroughly tested yet. If you notice any bugs, please raise an issue here on github or message me on Discord (`blue.tomato`).
-
 # State Manager
 
 After trying a number of history/ state management extensions, I found they all suffered from one of more of these problems:
