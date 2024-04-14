@@ -103,15 +103,15 @@ type SaveLocation = 'Browser\'s Indexed DB' | 'File';
 
     sm.ldb.get('sd-webui-state-manager-autosave', autosave => {
         if(autosave == null){
-            return;
+            sm.autoSaveHistory = false;  // Set default to false instead of undefined or true
+        } else {
+            sm.autoSaveHistory = autosave;
         }
-
-        sm.autoSaveHistory = autosave;
-        
+    
         const autosaveCheckbox = app.querySelector('#sd-webui-sm-autosave');
 
         if(autosaveCheckbox){
-            autosaveCheckbox.checked = autosave;
+            autosaveCheckbox.checked = false;
         }
     });
 
